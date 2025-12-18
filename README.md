@@ -1,6 +1,6 @@
 # chasse-aux-sorcieres-docker
 
-git clone git@github.com:toi/chasse-api.git api
-git clone git@github.com:toi/chasse-bot.git bot
-git clone git@github.com:toi/chasse-site.git site
-git clone git@github.com:toi/chasse-aux-sorcieres-docker.git .
+git clone git@github.com:Miles280/chasse-aux-sorcieres-api.git api
+git clone git@github.com:Miles280/chasse-aux-sorcieres-bot.git bot
+git clone git@github.com:Miles280/chasse-aux-sorcieres-site.git site
+git clone git@github.com:Miles280/chasse-aux-sorcieres-sorcieres-docker.git .
