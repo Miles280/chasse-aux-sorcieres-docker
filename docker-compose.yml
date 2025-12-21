@@ -1,0 +1,71 @@
+services:
+  db:
+    image: mysql:8
+    container_name: chasse_db
+    env_file: ./db/.env
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - chasse_network
+
+  api:
+    build: ./api
+    container_name: chasse_api
+    env_file: ./api/.env
+    environment:
+      CORS_ALLOW_ORIGIN: "*"
+    depends_on:
+      - db
+    volumes:
+      - jwt_data:/var/www/html/config/jwt
+    networks:
+      - chasse_network
+
+  site:
+    build: ./site
+    container_name: chasse_site
+    networks:
+      - chasse_network
+
+  nginx:
+    build: ./nginx
+    container_name: chasse_nginx
+    ports:
+      - "8000:80"
+    depends_on:
+      - api
+      - site
+    networks:
+      - chasse_network
+
+  bot:
+    build: ./bot
+    container_name: chasse_bot
+    env_file:
+      - ./bot/src/.env
+    depends_on:
+      - api
+      - db
+    networks:
+      - chasse_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: db
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - chasse_network
+
+volumes:
+  db_data:
+  jwt_data:
+
+networks:
+  chasse_network:
+    driver: bridge
