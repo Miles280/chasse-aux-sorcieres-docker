@@ -1,7 +1,34 @@
 services:
+  # --- TRAEFIK (Le remplaçant de Nginx + Certbot) ---
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true" # Active le dashboard (ne pas exposer sur internet sans protection en prod stricte, mais ok pour débuter)
+      - "--providers.docker=true" # Dit à Traefik d'écouter Docker
+      - "--providers.docker.exposedbydefault=false" # Ne pas exposer les conteneurs qui n'ont pas de label explicite
+      - "--entrypoints.web.address=:80" # Point d'entrée HTTP
+      - "--entrypoints.websecure.address=:443" # Point d'entrée HTTPS
+      # Configuration Let's Encrypt (Certificats SSL)
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=imed.loughsala@gmail.com" # <--- METS TON EMAIL ICI
+      - "--certificatesresolvers.myresolver.acme.storage=acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      # - "8080:8080" # Décommente pour voir le dashboard Traefik (http://IP-VPS:8080)
+    volumes:
+      - "./acme.json:/acme.json" # Le fichier qu'on a créé pour stocker les certs
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # Pour écouter Docker
+    networks:
+      - chasse_network
+
+  # --- BASE DE DONNÉES ---
   db:
     image: mysql:8
-    container_name: chasse_db
+    container_name: db
     env_file: ./db/.env
     volumes:
       - db_data:/var/lib/mysql
@@ -9,58 +36,72 @@ services:
     networks:
       - chasse_network
 
+  # --- API SYMFONY ---
   api:
     build: ./api
-    container_name: chasse_api
+    container_name: api
     env_file: ./api/.env
-    environment:
-      CORS_ALLOW_ORIGIN: "*"
+    restart: unless-stopped
     depends_on:
       - db
     volumes:
+      - ./api:/var/www/html
       - jwt_data:/var/www/html/config/jwt
     networks:
       - chasse_network
+    labels:
+      - "traefik.enable=true"
+      # Règle : Si le domaine est api.chasse-aux-sorcieres.fr
+      - "traefik.http.routers.api.rule=Host(`api.chasse-aux-sorcieres.fr`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=myresolver"
+      # IMPORTANT : Indique à Traefik sur quel port l'API écoute en interne (80 pour Apache, 9000 pour FPM)
+      # Je suppose ici que tu passes sur une image Apache ou que tu as un nginx interne sur le port 80
+      - "traefik.http.services.api.loadbalancer.server.port=80"
 
+  # --- SITE FRONTEND (Angular/React) ---
   site:
     build: ./site
-    container_name: chasse_site
+    container_name: site
+    restart: unless-stopped
     networks:
       - chasse_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.site.rule=Host(`chasse-aux-sorcieres.fr`)"
+      - "traefik.http.routers.site.entrypoints=websecure"
+      - "traefik.http.routers.site.tls.certresolver=myresolver"
+      - "traefik.http.services.site.loadbalancer.server.port=80" # Le port interne du nginx dans le conteneur site
 
-  nginx:
-    build: ./nginx
-    container_name: chasse_nginx
-    ports:
-      - "8000:80"
-    depends_on:
-      - api
-      - site
-    networks:
-      - chasse_network
-
+  # --- BOT DISCORD ---
   bot:
     build: ./bot
-    container_name: chasse_bot
-    env_file:
-      - ./bot/src/.env
+    container_name: bot
+    env_file: ./bot/src/.env
+    restart: unless-stopped
     depends_on:
       - api
       - db
     networks:
       - chasse_network
+    # Pas de labels Traefik ici car le bot ne doit pas être accessible via le web public
 
+  # --- PHPMYADMIN ---
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: phpmyadmin
     environment:
       PMA_HOST: db
-    ports:
-      - "8081:80"
     depends_on:
       - db
     networks:
       - chasse_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pma.rule=Host(`pma.chasse-aux-sorcieres.fr`)" # Ou un autre sous-domaine
+      - "traefik.http.routers.pma.entrypoints=websecure"
+      - "traefik.http.routers.pma.tls.certresolver=myresolver"
+      - "traefik.http.services.pma.loadbalancer.server.port=80"
 
 volumes:
   db_data:
