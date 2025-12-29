@@ -1,9 +1,11 @@
 services:
   # --- TRAEFIK (Le remplaçant de Nginx + Certbot) ---
   traefik:
-    image: traefik:v3.0
+    image: traefik:latest
     container_name: traefik
     restart: unless-stopped
+    environment:
+      - DOCKER_API_VERSION=1.44
     command:
       - "--api.insecure=true" # Active le dashboard (ne pas exposer sur internet sans protection en prod stricte, mais ok pour débuter)
       - "--providers.docker=true" # Dit à Traefik d'écouter Docker
@@ -33,8 +35,15 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     restart: unless-stopped
+    command: --skip-name-resolve
+    ports:
+      - "3306:3306"
     networks:
       - chasse_network
+    deploy:
+      resources:
+        limits:
+          memory: 450M
 
   # --- API SYMFONY ---
   api:
@@ -87,21 +96,26 @@ services:
     # Pas de labels Traefik ici car le bot ne doit pas être accessible via le web public
 
   # --- PHPMYADMIN ---
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin
-    environment:
-      PMA_HOST: db
-    depends_on:
-      - db
-    networks:
-      - chasse_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pma.rule=Host(`pma.chasse-aux-sorcieres.fr`)" # Ou un autre sous-domaine
-      - "traefik.http.routers.pma.entrypoints=websecure"
-      - "traefik.http.routers.pma.tls.certresolver=myresolver"
-      - "traefik.http.services.pma.loadbalancer.server.port=80"
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin
+  #   container_name: phpmyadmin
+  #   environment:
+  #     PMA_HOST: db
+  #   depends_on:
+  #     - db
+  #   networks:
+  #     - chasse_network
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.pma.rule=Host(`pma.chasse-aux-sorcieres.fr`)" # Ou un autre sous-domaine
+  #     - "traefik.http.routers.pma.entrypoints=websecure"
+  #     - "traefik.http.routers.pma.tls.certresolver=myresolver"
+  #     - "traefik.http.services.pma.loadbalancer.server.port=80"
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 512M
 
 volumes:
   db_data:

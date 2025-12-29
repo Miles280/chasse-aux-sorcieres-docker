@@ -1,0 +1,18 @@
+name: Update Configuration
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/chasse-aux-sorcieres
+            git pull origin main
+            # On relance tout pour appliquer les changements de config
+            docker compose up -d
