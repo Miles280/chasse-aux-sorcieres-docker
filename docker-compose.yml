@@ -49,7 +49,9 @@ services:
   api:
     build: ./api
     container_name: api
-    env_file: ./api/.env
+    env_file:
+      - ./api/.env
+      - ./api/.env.local
     restart: unless-stopped
     depends_on:
       - db
