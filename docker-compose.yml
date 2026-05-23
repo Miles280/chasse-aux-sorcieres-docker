@@ -19,10 +19,6 @@ services:
       - "--certificatesresolvers.myresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory"
       - "--certificatesresolvers.myresolver.acme.email=loughsala.imed@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
-
-      # Redirection HTTP vers HTTPS
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
     ports:
       - "80:80"
       - "443:443"
