@@ -1,5 +1,5 @@
 services:
-  # --- TRAEFIK ---
+  # --- TRAEFIK (Le remplaçant de Nginx + Certbot) ---
   traefik:
     image: traefik:latest
     container_name: traefik
@@ -7,25 +7,25 @@ services:
     environment:
       - DOCKER_API_VERSION=1.44
     command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
+      - "--api.insecure=true" # Active le dashboard (ne pas exposer sur internet sans protection en prod stricte, mais ok pour débuter)
+      - "--providers.docker=true" # Dit à Traefik d'écouter Docker
+      - "--providers.docker.exposedbydefault=false" # Ne pas exposer les conteneurs qui n'ont pas de label explicite
+      - "--entrypoints.web.address=:80" # Point d'entrée HTTP
+      - "--entrypoints.websecure.address=:443" # Point d'entrée HTTPS
+
+      # CHANGEMENT : HTTP challenge au lieu de TLS challenge
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
       - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.myresolver.acme.caServer=https://acme-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.myresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory"
       - "--certificatesresolvers.myresolver.acme.email=loughsala.imed@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
     ports:
       - "80:80"
       - "443:443"
+      # - "8080:8080" # Décommente pour voir le dashboard Traefik (http://IP-VPS:8080)
     volumes:
-      - "./acme.json:/acme.json"
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./acme.json:/acme.json" # Le fichier qu'on a créé pour stocker les certs
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # Pour écouter Docker
     networks:
       - chasse_network
 
