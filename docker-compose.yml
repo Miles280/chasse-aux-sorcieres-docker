@@ -1,5 +1,4 @@
 services:
-  # --- TRAEFIK (Le remplaçant de Nginx + Certbot) ---
   traefik:
     image: traefik:latest
     container_name: traefik
@@ -7,27 +6,27 @@ services:
     environment:
       - DOCKER_API_VERSION=1.44
     command:
-      - "--api.insecure=true" # Active le dashboard (ne pas exposer sur internet sans protection en prod stricte, mais ok pour débuter)
-      - "--providers.docker=true" # Dit à Traefik d'écouter Docker
-      - "--providers.docker.exposedbydefault=false" # Ne pas exposer les conteneurs qui n'ont pas de label explicite
-      - "--entrypoints.web.address=:80" # Point d'entrée HTTP
-      - "--entrypoints.websecure.address=:443" # Point d'entrée HTTPS
-      # Configuration Let's Encrypt (Certificats SSL)
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Redirection automatique HTTP -> HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
       - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.myresolver.acme.email=loughsala.imed@gmail.com" # <--- METS TON EMAIL ICI
-      - "--certificatesresolvers.myresolver.acme.storage=acme.json"
+      - "--certificatesresolvers.myresolver.acme.email=loughsala.imed@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
     ports:
       - "80:80"
       - "443:443"
-      # - "8080:8080" # Décommente pour voir le dashboard Traefik (http://IP-VPS:8080)
     volumes:
-      - "./acme.json:/acme.json" # Le fichier qu'on a créé pour stocker les certs
-      - "/var/run/docker.sock:/var/run/docker.sock:ro" # Pour écouter Docker
+      - "./acme.json:/acme.json"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
       - chasse_network
 
-  # --- BASE DE DONNÉES ---
   db:
     image: mysql:8
     container_name: db
@@ -45,7 +44,6 @@ services:
         limits:
           memory: 450M
 
-  # --- API SYMFONY ---
   api:
     build: ./api
     container_name: api
@@ -62,15 +60,15 @@ services:
       - chasse_network
     labels:
       - "traefik.enable=true"
-      # Règle : Si le domaine est api.chasse-aux-sorcieres.fr
+      # Router HTTPS
       - "traefik.http.routers.api.rule=Host(`api.chasse-aux-sorcieres.fr`)"
       - "traefik.http.routers.api.entrypoints=websecure"
       - "traefik.http.routers.api.tls.certresolver=myresolver"
-      # IMPORTANT : Indique à Traefik sur quel port l'API écoute en interne (80 pour Apache, 9000 pour FPM)
-      # Je suppose ici que tu passes sur une image Apache ou que tu as un nginx interne sur le port 80
+      # Router HTTP (nécessaire pour le challenge ACME)
+      - "traefik.http.routers.api-http.rule=Host(`api.chasse-aux-sorcieres.fr`)"
+      - "traefik.http.routers.api-http.entrypoints=web"
       - "traefik.http.services.api.loadbalancer.server.port=80"
 
-  # --- SITE FRONTEND (Angular/React) ---
   site:
     build: ./site
     container_name: site
@@ -79,12 +77,15 @@ services:
       - chasse_network
     labels:
       - "traefik.enable=true"
+      # Router HTTPS
       - "traefik.http.routers.site.rule=Host(`chasse-aux-sorcieres.fr`)"
       - "traefik.http.routers.site.entrypoints=websecure"
       - "traefik.http.routers.site.tls.certresolver=myresolver"
-      - "traefik.http.services.site.loadbalancer.server.port=80" # Le port interne du nginx dans le conteneur site
+      # Router HTTP (nécessaire pour le challenge ACME)
+      - "traefik.http.routers.site-http.rule=Host(`chasse-aux-sorcieres.fr`)"
+      - "traefik.http.routers.site-http.entrypoints=web"
+      - "traefik.http.services.site.loadbalancer.server.port=80"
 
-  # --- BOT DISCORD ---
   bot:
     build: ./bot
     container_name: bot
@@ -95,7 +96,6 @@ services:
       - db
     networks:
       - chasse_network
-    # Pas de labels Traefik ici car le bot ne doit pas être accessible via le web public
 
 volumes:
   db_data:
