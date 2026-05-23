@@ -12,12 +12,17 @@ services:
       - "--providers.docker.exposedbydefault=false" # Ne pas exposer les conteneurs qui n'ont pas de label explicite
       - "--entrypoints.web.address=:80" # Point d'entrée HTTP
       - "--entrypoints.websecure.address=:443" # Point d'entrée HTTPS
-      # Configuration Let's Encrypt (Certificats SSL)
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      # - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+
+      # CHANGEMENT : HTTP challenge au lieu de TLS challenge
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.myresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.myresolver.acme.email=loughsala.imed@gmail.com" # <--- METS TON EMAIL ICI
-      - "--certificatesresolvers.myresolver.acme.storage=acme.json"
+      - "--certificatesresolvers.myresolver.acme.email=loughsala.imed@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
+
+      # Redirection HTTP vers HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
     ports:
       - "80:80"
       - "443:443"
