@@ -15,6 +15,7 @@ services:
       # Configuration Let's Encrypt (Certificats SSL)
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       # - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory"
       - "--certificatesresolvers.myresolver.acme.email=loughsala.imed@gmail.com" # <--- METS TON EMAIL ICI
       - "--certificatesresolvers.myresolver.acme.storage=acme.json"
     ports:
