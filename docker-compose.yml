@@ -119,4 +119,5 @@ volumes:
 
 networks:
   chasse_network:
+    name: chasse_network
     driver: bridge
