@@ -1,30 +1,40 @@
 services:
   traefik:
-    image: traefik:latest
+    image: traefik:v3.1
     container_name: traefik
     restart: unless-stopped
-    environment:
-      - DOCKER_API_VERSION=1.44
+
     command:
-      - "--api.insecure=true"
+      # LOGS (OBLIGATOIRE pour debug)
+      - "--log.level=INFO"
+      - "--accesslog=true"
+
+      # Docker provider
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+
+      # Entry points
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # Redirection automatique HTTP -> HTTPS
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+
+      # GLOBAL HTTP → HTTPS REDIRECT (clean)
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+
+      # Let's Encrypt
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
       - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.myresolver.acme.email=loughsala.imed@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
-      # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+
     ports:
       - "80:80"
       - "443:443"
+
     volumes:
       - "./acme.json:/acme.json"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
     networks:
       - chasse_network
 
@@ -59,16 +69,18 @@ services:
       - jwt_data:/var/www/html/config/jwt
     networks:
       - chasse_network
+
     labels:
       - "traefik.enable=true"
-      # Router HTTPS
+
+      # HTTPS ONLY
       - "traefik.http.routers.api.rule=Host(`api.chasse-aux-sorcieres.fr`)"
       - "traefik.http.routers.api.entrypoints=websecure"
       - "traefik.http.routers.api.tls.certresolver=myresolver"
-      # Router HTTP (nécessaire pour le challenge ACME)
-      - "traefik.http.routers.api-http.rule=Host(`api.chasse-aux-sorcieres.fr`)"
-      - "traefik.http.routers.api-http.entrypoints=web"
+
+      # SERVICE
       - "traefik.http.services.api.loadbalancer.server.port=80"
+      - "traefik.http.services.api.loadbalancer.passhostheader=true"
 
   site:
     build: ./site
@@ -76,16 +88,18 @@ services:
     restart: unless-stopped
     networks:
       - chasse_network
+
     labels:
       - "traefik.enable=true"
-      # Router HTTPS
+
+      # HTTPS ONLY
       - "traefik.http.routers.site.rule=Host(`chasse-aux-sorcieres.fr`)"
       - "traefik.http.routers.site.entrypoints=websecure"
       - "traefik.http.routers.site.tls.certresolver=myresolver"
-      # Router HTTP (nécessaire pour le challenge ACME)
-      - "traefik.http.routers.site-http.rule=Host(`chasse-aux-sorcieres.fr`)"
-      - "traefik.http.routers.site-http.entrypoints=web"
+
+      # SERVICE
       - "traefik.http.services.site.loadbalancer.server.port=80"
+      - "traefik.http.services.site.loadbalancer.passhostheader=true"
 
   bot:
     build: ./bot
