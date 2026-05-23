@@ -73,15 +73,13 @@ services:
 
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=chasse_network"
 
-      # HTTPS ONLY
       - "traefik.http.routers.api.rule=Host(`api.chasse-aux-sorcieres.fr`)"
       - "traefik.http.routers.api.entrypoints=websecure"
       - "traefik.http.routers.api.tls.certresolver=myresolver"
 
-      # SERVICE
       - "traefik.http.services.api.loadbalancer.server.port=80"
-      - "traefik.http.services.api.loadbalancer.passhostheader=true"
 
   site:
     build: ./site
@@ -92,15 +90,13 @@ services:
 
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=chasse_network"
 
-      # HTTPS ONLY
       - "traefik.http.routers.site.rule=Host(`chasse-aux-sorcieres.fr`)"
       - "traefik.http.routers.site.entrypoints=websecure"
       - "traefik.http.routers.site.tls.certresolver=myresolver"
 
-      # SERVICE
       - "traefik.http.services.site.loadbalancer.server.port=80"
-      - "traefik.http.services.site.loadbalancer.passhostheader=true"
 
   bot:
     build: ./bot
