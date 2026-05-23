@@ -12,6 +12,7 @@ services:
       # Docker provider
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=chasse_network"
 
       # Entry points
       - "--entrypoints.web.address=:80"
