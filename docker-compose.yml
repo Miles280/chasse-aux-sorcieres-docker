@@ -15,7 +15,7 @@ services:
       # Configuration Let's Encrypt (Certificats SSL)
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
       - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.myresolver.acme.email=imed.loughsala@gmail.com" # <--- METS TON EMAIL ICI
+      - "--certificatesresolvers.myresolver.acme.email=loughsala.imed@gmail.com" # <--- METS TON EMAIL ICI
       - "--certificatesresolvers.myresolver.acme.storage=acme.json"
     ports:
       - "80:80"
@@ -96,28 +96,6 @@ services:
     networks:
       - chasse_network
     # Pas de labels Traefik ici car le bot ne doit pas être accessible via le web public
-
-  # --- PHPMYADMIN ---
-  # phpmyadmin:
-  #   image: phpmyadmin/phpmyadmin
-  #   container_name: phpmyadmin
-  #   environment:
-  #     PMA_HOST: db
-  #   depends_on:
-  #     - db
-  #   networks:
-  #     - chasse_network
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.pma.rule=Host(`pma.chasse-aux-sorcieres.fr`)" # Ou un autre sous-domaine
-  #     - "traefik.http.routers.pma.entrypoints=websecure"
-  #     - "traefik.http.routers.pma.tls.certresolver=myresolver"
-  #     - "traefik.http.services.pma.loadbalancer.server.port=80"
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.5"
-  #         memory: 512M
 
 volumes:
   db_data:
