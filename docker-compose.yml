@@ -1,5 +1,6 @@
 services:
   # --- TRAEFIK (Corrigé pour le SSL) ---
+  # --- TRAEFIK ---
   traefik:
     image: traefik:v3.1
     container_name: traefik
@@ -11,15 +12,20 @@ services:
       - "--accesslog=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      # On force Traefik à utiliser ce réseau pour trouver les autres conteneurs
       - "--providers.docker.network=chasse_network"
+
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # Configuration Let's Encrypt (Correction du chemin acme.json)
+
+      # REMIS : Redirection automatique HTTP vers HTTPS
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+
+      # REMIS : Le slash pour /acme.json
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
       - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.myresolver.acme.email=imed.loughsala@gmail.com"
-      - "--certificatesresolvers.myresolver.acme.storage=acme.json"
+      - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
     ports:
       - "80:80"
       - "443:443"
