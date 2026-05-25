@@ -1,42 +1,35 @@
 services:
+  # --- TRAEFIK (Corrigé pour le SSL) ---
   traefik:
     image: traefik:v3.1
     container_name: traefik
     restart: unless-stopped
-
     environment:
       - DOCKER_API_VERSION=1.44
-
     command:
       - "--log.level=INFO"
       - "--accesslog=true"
-
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      # On force Traefik à utiliser ce réseau pour trouver les autres conteneurs
       - "--providers.docker.network=chasse_network"
-
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-
+      # Configuration Let's Encrypt (Correction du chemin acme.json)
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
       - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.myresolver.acme.email=tonmail@gmail.com"
-      - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
-
+      - "--certificatesresolvers.myresolver.acme.email=imed.loughsala@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=acme.json"
     ports:
       - "80:80"
       - "443:443"
-
     volumes:
       - "./acme.json:/acme.json"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-
     networks:
       - chasse_network
 
+  # --- BASE DE DONNÉES ---
   db:
     image: mysql:8
     container_name: db
@@ -54,6 +47,7 @@ services:
         limits:
           memory: 450M
 
+  # --- API SYMFONY (Nouveau Dockerfile Apache performant) ---
   api:
     build: ./api
     container_name: api
@@ -68,34 +62,30 @@ services:
       - jwt_data:/var/www/html/config/jwt
     networks:
       - chasse_network
-
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=chasse_network"
-
       - "traefik.http.routers.api.rule=Host(`api.chasse-aux-sorcieres.fr`)"
       - "traefik.http.routers.api.entrypoints=websecure"
       - "traefik.http.routers.api.tls.certresolver=myresolver"
-
       - "traefik.http.services.api.loadbalancer.server.port=80"
 
+  # --- SITE FRONTEND (Angular + Nginx) ---
   site:
     build: ./site
     container_name: site
     restart: unless-stopped
     networks:
       - chasse_network
-
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=chasse_network"
-
       - "traefik.http.routers.site.rule=Host(`chasse-aux-sorcieres.fr`)"
       - "traefik.http.routers.site.entrypoints=websecure"
       - "traefik.http.routers.site.tls.certresolver=myresolver"
-
       - "traefik.http.services.site.loadbalancer.server.port=80"
 
+  # --- BOT DISCORD ---
   bot:
     build: ./bot
     container_name: bot
