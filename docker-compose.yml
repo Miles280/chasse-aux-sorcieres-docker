@@ -1,76 +1,42 @@
 services:
   traefik:
     image: traefik:v3.6.1
-
     container_name: traefik
-
     restart: unless-stopped
-
-    environment:
-      - DOCKER_API_VERSION=1.44
-
     command:
-      - "--log.level=DEBUG"
-
+      - "--log.level=INFO"
       - "--accesslog=true"
-
       - "--providers.docker=true"
-
       - "--providers.docker.exposedbydefault=false"
-
       - "--providers.docker.network=chasse_network"
-
       - "--providers.docker.endpoint=unix:///var/run/docker.sock"
-
       - "--entrypoints.web.address=:80"
-
       - "--entrypoints.websecure.address=:443"
-
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
-
       - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
-
       - "--certificatesresolvers.myresolver.acme.email=tonmail@gmail.com"
-
       - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
-
     ports:
       - "80:80"
-
       - "443:443"
-
     volumes:
       - "./acme.json:/acme.json"
-
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-
     networks:
       - chasse_network
 
   db:
     image: mysql:8
-
     container_name: db
-
+    restart: unless-stopped
     env_file: ./db/.env
-
+    command: --skip-name-resolve
     volumes:
       - db_data:/var/lib/mysql
-
-    restart: unless-stopped
-
-    command: --skip-name-resolve
-
-    ports:
-      - "3306:3306"
-
     networks:
       - chasse_network
-
     deploy:
       resources:
         limits:
@@ -78,87 +44,56 @@ services:
 
   api:
     build: ./api
-
     container_name: api
-
+    restart: unless-stopped
     env_file:
       - ./api/.env
-
       - ./api/.env.local
-
-    restart: unless-stopped
-
     depends_on:
       - db
-
     volumes:
       - ./api:/var/www/html
-
       - jwt_data:/var/www/html/config/jwt
-
     networks:
       - chasse_network
-
     labels:
       - "traefik.enable=true"
-
       - "traefik.docker.network=chasse_network"
-
       - "traefik.http.routers.api.rule=Host(`api.chasse-aux-sorcieres.fr`)"
-
       - "traefik.http.routers.api.entrypoints=websecure"
-
       - "traefik.http.routers.api.tls.certresolver=myresolver"
-
       - "traefik.http.services.api.loadbalancer.server.port=80"
 
   site:
     build: ./site
-
     container_name: site
-
     restart: unless-stopped
-
     networks:
       - chasse_network
-
     labels:
       - "traefik.enable=true"
-
       - "traefik.docker.network=chasse_network"
-
       - "traefik.http.routers.site.rule=Host(`chasse-aux-sorcieres.fr`)"
-
       - "traefik.http.routers.site.entrypoints=websecure"
-
       - "traefik.http.routers.site.tls.certresolver=myresolver"
-
       - "traefik.http.services.site.loadbalancer.server.port=80"
 
   bot:
     build: ./bot
-
     container_name: bot
-
-    env_file: ./bot/src/.env
-
     restart: unless-stopped
-
+    env_file: ./bot/src/.env
     depends_on:
       - api
-
       - db
-
     networks:
       - chasse_network
 
 volumes:
   db_data:
-
   jwt_data:
 
 networks:
   chasse_network:
     name: chasse_network
-
     driver: bridge
