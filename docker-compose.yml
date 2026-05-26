@@ -10,7 +10,7 @@ services:
       - DOCKER_API_VERSION=${DOCKER_API_VERSION}
 
     command:
-      - "--log.level=INFO"
+      - "--log.level=DEBUG"
 
       - "--accesslog=true"
 
