@@ -1,51 +1,33 @@
 services:
   traefik:
     image: traefik:v3.2
-
     container_name: traefik
-
     restart: unless-stopped
-
-    environment:
-      - DOCKER_API_VERSION=1.44
-
     command:
       - "--log.level=INFO"
-
       - "--accesslog=true"
-
+      # --- FORCAGE DU SOCKET ET VERSION ---
       - "--providers.docker=true"
-
       - "--providers.docker.exposedbydefault=false"
-
       - "--providers.docker.network=chasse_network"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
 
       - "--entrypoints.web.address=:80"
-
       - "--entrypoints.websecure.address=:443"
 
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
 
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
-
       - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
-
       - "--certificatesresolvers.myresolver.acme.email=tonmail@gmail.com"
-
       - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
-
     ports:
       - "80:80"
-
       - "443:443"
-
     volumes:
       - "./acme.json:/acme.json"
-
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-
     networks:
       - chasse_network
 
