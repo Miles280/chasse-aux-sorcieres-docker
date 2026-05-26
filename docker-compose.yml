@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
 
     environment:
-      - DOCKER_API_VERSION=${DOCKER_API_VERSION}
+      - DOCKER_API_VERSION=1.44
 
     command:
       - "--log.level=DEBUG"
@@ -19,6 +19,8 @@ services:
       - "--providers.docker.exposedbydefault=false"
 
       - "--providers.docker.network=chasse_network"
+
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
 
       - "--entrypoints.web.address=:80"
 
