@@ -54,7 +54,6 @@ services:
     depends_on:
       - db
     volumes:
-      - ./api:/var/www/html
       - jwt_data:/var/www/html/config/jwt
     networks:
       - chasse_network
