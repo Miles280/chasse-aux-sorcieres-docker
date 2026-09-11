@@ -55,6 +55,7 @@ services:
       - db
     volumes:
       - jwt_data:/var/www/html/config/jwt
+      - roles_assets:/var/www/html/public/assets/roles
     networks:
       - chasse_network
     labels:
@@ -93,6 +94,7 @@ services:
 volumes:
   db_data:
   jwt_data:
+  roles_assets:
 
 networks:
   chasse_network:
